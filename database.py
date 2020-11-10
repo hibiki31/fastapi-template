@@ -1,12 +1,20 @@
-from starlette.requests import Request
-from databases import Database
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = 'sqlite:///database.sqlite3'
+SQLALCHEMY_DATABASE_URL = "sqlite:///./data/app.db"
+# SQLALCHEMY_DATABASE_URL = "postgresql://user:password@postgresserver/db"
 
-database = Database(DATABASE_URL)
-metadata = MetaData()
-engine = create_engine(DATABASE_URL, echo=True)
+Engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=Engine)
 
-def get_connection(request: Request):
-    return request.state.connection
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

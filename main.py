@@ -3,25 +3,23 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from starlette.requests import Request
 
-from database import database
+from database import SessionLocal, Engine, Base
 from template.router import router as template_router
 
 app = FastAPI()
-
 app.include_router(template_router)
 
-@app.on_event("startup")
-async def startup():
-    await database.connect()
+Base.metadata.create_all(bind=Engine)
 
-@app.on_event("shutdown")
-async def shutdown():
-    await database.disconnect()
 
+# 全てのリクエストで同じ処理が書ける
 @app.middleware("http")
 async def db_session_middleware(request: Request, call_next):
-    request.state.connection = database
+    # セッションを各リクエストに載せる
+    request.state.db = SessionLocal()
+    # 各関数で処理を行って結果を受け取る
     response = await call_next(request)
+    # 結果を返す
     return response
 
 if __name__ == "__main__":
